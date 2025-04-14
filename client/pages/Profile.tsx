@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Shield, Phone, Bell, LogOut, Check, Upload, KeyRound, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, Shield, Phone, LogOut, Check, Upload, KeyRound, Trash2, Camera, X, ExternalLink, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-// import { deleteFirebaseUser } from '@/services/authService';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface UserProfile {
   _id: string;
@@ -26,6 +29,14 @@ interface UserProfile {
   profilePicture: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface VerificationStatus {
+  isPhoneVerified: boolean;
+  isIdVerified: boolean;
+  verificationStatus: string;
+  idType: string | null;
+  phone: string;
 }
 
 const Profile = () => {
@@ -55,6 +66,31 @@ const Profile = () => {
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   
+  // Profile picture states
+  const [isProfilePictureOpen, setIsProfilePictureOpen] = useState(false);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [isProfilePictureLoading, setIsProfilePictureLoading] = useState(false);
+  
+  // Phone verification states
+  const [isPhoneVerificationOpen, setIsPhoneVerificationOpen] = useState(false);
+  const [verificationPhone, setVerificationPhone] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [isPhoneVerificationLoading, setIsPhoneVerificationLoading] = useState(false);
+  
+  // ID verification states
+  const [isIdVerificationOpen, setIsIdVerificationOpen] = useState(false);
+  const [idType, setIdType] = useState('');
+  const [idNumber, setIdNumber] = useState('');
+  const [idDocument, setIdDocument] = useState<File | null>(null);
+  const [isIdVerificationLoading, setIsIdVerificationLoading] = useState(false);
+  
+  // Verification status states
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
+  const [isVerificationStatusOpen, setIsVerificationStatusOpen] = useState(false);
+  const [isVerificationStatusLoading, setIsVerificationStatusLoading] = useState(false);
+  
   const navigate = useNavigate();
 
   const fetchUserProfile = async () => {
@@ -77,6 +113,7 @@ const Profile = () => {
       setUserProfile(data);
       setName(data.name);
       setPhone(data.phone);
+      setVerificationPhone(data.phone);
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast.error('Failed to load profile. Please try again later.');
@@ -88,6 +125,23 @@ const Profile = () => {
   useEffect(() => {
     fetchUserProfile();
   }, []);
+
+  // Timer for OTP
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prevTimer) => prevTimer - 1);
+      }, 1000);
+    } else if (otpTimer === 0 && otpSent) {
+      // OTP expired
+      toast.error('OTP has expired. Please request a new one.');
+      setOtpSent(false);
+    }
+    
+    return () => clearInterval(interval);
+  }, [otpTimer, otpSent]);
 
   const handleLogout = async () => {
     try {
@@ -143,11 +197,6 @@ const Profile = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleVerification = () => {
-    navigate('/verification');
-    toast.info('Verification feature is under development');
   };
 
   // Reset Password Handler
@@ -296,10 +345,260 @@ const Profile = () => {
     }
   };
 
-  const handleUploadDocument = () => {
-    // This would handle document upload for verification
-    toast.info('Document upload feature coming soon');
+  // Profile Picture Upload Handler
+  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Check file size (4MB limit)
+      if (file.size > 4 * 1024 * 1024) {
+        toast.error('File size must be less than 4MB');
+        return;
+      }
+      
+      setProfilePicture(file);
+    }
   };
+  
+  const handleProfilePictureUpload = async () => {
+    if (!profilePicture) {
+      toast.error('Please select an image to upload');
+      return;
+    }
+    
+    setIsProfilePictureLoading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('profilePicture', profilePicture);
+      
+      // Using PATCH method as specified
+      const response = await fetch('http://localhost:8080/api/user/update-profile-picture', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to upload profile picture');
+      }
+      
+      const data = await response.json();
+      
+      // Update the profile with the new image
+      await fetchUserProfile();
+      
+      toast.success('Profile picture updated successfully');
+      setIsProfilePictureOpen(false);
+      setProfilePicture(null);
+    } catch (error) {
+      console.error('Profile picture upload error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload profile picture');
+    } finally {
+      setIsProfilePictureLoading(false);
+    }
+  };
+
+  // Phone Verification Handlers - Updated for single dialog approach
+  const handleSendOTP = async () => {
+    if (!verificationPhone) {
+      toast.error('Phone number is required');
+      return;
+    }
+    
+    setIsPhoneVerificationLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/user/verify/phone', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          phone: verificationPhone
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+      
+      toast.success(`Verification code sent to ${verificationPhone}`);
+      setOtpSent(true);
+      // 10 minutes timer (600 seconds)
+      setOtpTimer(600);
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to send OTP');
+    } finally {
+      setIsPhoneVerificationLoading(false);
+    }
+  };
+  
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
+    
+    setIsPhoneVerificationLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/user/verify/otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          phone: verificationPhone,
+          otp
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to verify OTP');
+      }
+      
+      if (data.verified) {
+        toast.success('Phone number verified successfully');
+        setIsPhoneVerificationOpen(false);
+        setOtpSent(false);
+        setOtp('');
+        
+        // Update user profile data
+        await fetchUserProfile();
+      } else {
+        toast.error('Invalid OTP. Please try again.');
+      }
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to verify OTP');
+    } finally {
+      setIsPhoneVerificationLoading(false);
+    }
+  };
+
+  // ID Document Upload Handler
+  const handleIdDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Check file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      
+      setIdDocument(file);
+    }
+  };
+  
+  const handleIdDocumentUpload = async () => {
+    if (!idType) {
+      toast.error('Please select an ID type');
+      return;
+    }
+    
+    if (!idNumber) {
+      toast.error('Please enter your ID number');
+      return;
+    }
+    
+    if (!idDocument) {
+      toast.error('Please select a document to upload');
+      return;
+    }
+    
+    setIsIdVerificationLoading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('idDocument', idDocument);
+      formData.append('idType', idType);
+      formData.append('idNumber', idNumber);
+      
+      // Using POST method as specified
+      const response = await fetch('http://localhost:8080/api/user/verify/id', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData,
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload ID document');
+      }
+      
+      toast.success('ID document uploaded successfully. Your verification is under review.');
+      setIsIdVerificationOpen(false);
+      setIdType('');
+      setIdNumber('');
+      setIdDocument(null);
+      
+      // Update user profile
+      await fetchUserProfile();
+    } catch (error) {
+      console.error('ID document upload error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload ID document');
+    } finally {
+      setIsIdVerificationLoading(false);
+    }
+  };
+
+  // Check Verification Status
+  const handleCheckVerificationStatus = async () => {
+    setIsVerificationStatusLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/user/verify/status', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get verification status');
+      }
+      
+      setVerificationStatus(data);
+      setIsVerificationStatusOpen(true);
+    } catch (error) {
+      console.error('Verification status error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to get verification status');
+    } finally {
+      setIsVerificationStatusLoading(false);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+
+  const resetStates = () => {
+    setVerificationPhone('');
+    setOtp('');
+    setOtpSent(false);
+    setIsPhoneVerificationLoading(false);
+    setOtpTimer(0);
+};
 
   const isVerified = userProfile?.isPhoneVerified && userProfile?.isIdVerified;
 
@@ -332,10 +631,27 @@ const Profile = () => {
         {/* Profile Card */}
         <div className="bg-sheild-darkblue/50 p-6 rounded-lg mb-6">
           <div className="flex items-center mb-6">
-            <div className="bg-sheild-purple w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4">
-              {userProfile?.name.charAt(0) || 'U'}
+            <div className="relative">
+              {userProfile?.profilePicture ? (
+                <Avatar className="h-16 w-16 border-2 border-sheild-purple">
+                  <AvatarImage src={userProfile.profilePicture} alt={userProfile.name} />
+                  <AvatarFallback className="bg-sheild-purple text-white text-2xl font-bold">
+                    {userProfile.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="bg-sheild-purple w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  {userProfile?.name.charAt(0) || 'U'}
+                </div>
+              )}
+              <button 
+                onClick={() => setIsProfilePictureOpen(true)}
+                className="absolute bottom-0 right-0 bg-sheild-purple text-white p-1 rounded-full hover:bg-sheild-purple/80 transition-colors"
+              >
+                <Camera size={14} />
+              </button>
             </div>
-            <div>
+            <div className="ml-4">
               {isEditing ? (
                 <input
                   type="text"
@@ -446,38 +762,71 @@ const Profile = () => {
           </Button>
         </div>
         
-        {/* Verification */}
-        {!isVerified && (
-          <div className="bg-sheild-darkblue/50 p-6 rounded-lg mb-6">
-            <h3 className="text-lg font-bold text-white mb-2">Account Verification</h3>
-            <p className="text-gray-300 mb-4">
-              Verify your account to access all features and connect with verified travel partners.
-            </p>
+        {/* Verification Section */}
+        <div className="bg-sheild-darkblue/50 p-6 rounded-lg mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-white">Verification</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCheckVerificationStatus}
+              disabled={isVerificationStatusLoading}
+              className="border-sheild-purple text-sheild-purple hover:bg-sheild-purple/10"
+            >
+              <RefreshCcw size={14} className="mr-1" />
+              Check Status
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-white font-medium">Phone Verification</div>
+                <div className="text-gray-300 text-sm">Verify your phone number with OTP</div>
+              </div>
+              {userProfile?.isPhoneVerified ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <Check size={12} className="mr-1" /> Verified
+                </span>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setIsPhoneVerificationOpen(true);
+                    setVerificationPhone(userProfile?.phone || '');
+                  }}
+                  className="bg-sheild-purple hover:bg-sheild-purple/80"
+                >
+                  Verify Phone
+                </Button>
+              )}
+            </div>
             
-            <div className="space-y-3">
-              <Button 
-                onClick={handleVerification}
-                className="w-full bg-sheild-purple hover:bg-sheild-purple/80"
-              >
-                <div className="flex items-center justify-center">
-                  <Shield size={16} className="mr-2" />
-                  Start Verification
-                </div>
-              </Button>
-              
-              <Button 
-                variant="outline"
-                onClick={handleUploadDocument}
-                className="w-full border-sheild-purple text-sheild-purple hover:bg-sheild-purple/10"
-              >
-                <div className="flex items-center justify-center">
-                  <Upload size={16} className="mr-2" />
-                  Upload ID Document
-                </div>
-              </Button>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-white font-medium">ID Verification</div>
+                <div className="text-gray-300 text-sm">Submit government ID for verification</div>
+              </div>
+              {userProfile?.isIdVerified ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <Check size={12} className="mr-1" /> Verified
+                </span>
+              ) : userProfile?.verificationStatus === 'in_review' ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  In Review
+                </span>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => setIsIdVerificationOpen(true)}
+                  className="bg-sheild-purple hover:bg-sheild-purple/80"
+                >
+                  Upload ID
+                </Button>
+              )}
             </div>
           </div>
-        )}
+        </div>
         
         {/* Account Actions */}
         <div className="space-y-3">
@@ -506,6 +855,265 @@ const Profile = () => {
           </Button>
         </div>
       </div>
+      
+      {/* Profile Picture Upload Dialog */}
+      <Dialog open={isProfilePictureOpen} onOpenChange={setIsProfilePictureOpen}>
+        <DialogContent className="bg-sheild-darkblue text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Upload Profile Picture</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm text-gray-300">Select Image (Max 4MB)</label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handleProfilePictureChange}
+                className="bg-black/30 border-gray-700 text-white"
+              />
+            </div>
+            {profilePicture && (
+              <div className="flex justify-center">
+                <img
+                  src={URL.createObjectURL(profilePicture)}
+                  alt="Profile Preview"
+                  className="h-24 w-24 rounded-full object-cover"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsProfilePictureOpen(false);
+                setProfilePicture(null);
+              }}
+              className="border-gray-700 text-gray-300"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleProfilePictureUpload}
+              disabled={!profilePicture || isProfilePictureLoading}
+              className="bg-sheild-purple hover:bg-sheild-purple/80"
+            >
+              {isProfilePictureLoading ? 'Uploading...' : 'Upload'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Phone Verification Dialog - Updated to a single dialog with both steps */}
+      <Dialog open={isPhoneVerificationOpen} onOpenChange={(open) => {
+                setIsPhoneVerificationOpen(open);
+                if (!open) {
+                   resetStates(); // Reset all states when dialog closes
+                }
+            }}>
+                {/* sm:max-w-[425px] makes it constrained on small screens and up, flexible on smaller mobile */}
+                <DialogContent className="bg-sheild-darkblue text-white sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-center sm:text-left"> {/* Centered title on mobile */}
+                            Phone Verification
+                        </DialogTitle>
+                    </DialogHeader>
+                    {/* Increased vertical spacing for better touch targets on mobile */}
+                    <div className="space-y-6 py-4"> {/* Increased space-y */}
+                        {/* Phone Number Input */}
+                        <div className="space-y-2">
+                            <label htmlFor="phoneInput" className="text-sm font-medium text-gray-300">Phone Number</label>
+                            <Input
+                                id="phoneInput"
+                                type="tel"
+                                value={verificationPhone}
+                                onChange={(e) => setVerificationPhone(e.target.value)}
+                                className="bg-black/30 border-gray-700 text-white focus-visible:ring-sheild-purple"
+                                placeholder="+1 (555) 123-4567"
+                                disabled={otpSent}
+                            />
+                        </div>
+
+                        {/* Send/Resend OTP Button - Now Full Width */}
+                        {/* Removed flex justify-end from wrapper div */}
+                        <div>
+                            <Button
+                                onClick={handleSendOTP}
+                                disabled={!verificationPhone || isPhoneVerificationLoading || (otpSent && otpTimer > 0)}
+                                // Added w-full class here
+                                className="bg-sheild-purple hover:bg-sheild-purple/80 disabled:opacity-50 w-full"
+                            >
+                                {isPhoneVerificationLoading && !otpSent ? 'Sending...' :
+                                    otpSent && otpTimer > 0 ? `Resend in ${formatTime(otpTimer)}` :
+                                    otpSent ? 'Resend OTP' : 'Send OTP'}
+                            </Button>
+                        </div>
+
+                        {/* --- OTP Input and Verify Button Section --- */}
+                        {otpSent && (
+                            <>
+                                {/* OTP Input Field */}
+                                <div className="space-y-2"> {/* Reduced top padding here as space-y-6 handles it */}
+                                    <label htmlFor="otpInput" className="text-sm font-medium text-gray-300">Verification Code</label>
+                                    <Input
+                                        id="otpInput"
+                                        type="text"
+                                        inputMode="numeric"
+                                        autoComplete="one-time-code"
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value)}
+                                        className="bg-black/30 border-gray-700 text-white focus-visible:ring-sheild-purple"
+                                        placeholder="Enter OTP"
+                                        maxLength={6}
+                                    />
+                                </div>
+
+                                {/* Verify OTP Button - Now Full Width */}
+                                {/* Removed flex justify-end from wrapper div */}
+                                <div>
+                                    <Button
+                                        onClick={handleVerifyOTP}
+                                        disabled={!otp || otp.length < 4 || isPhoneVerificationLoading } // Also disable if sending/verifying
+                                        // Added w-full class here
+                                        className="bg-sheild-purple hover:bg-sheild-purple/80 disabled:opacity-50 w-full"
+                                    >
+                                        {/* Optional: Add loading state for verification */}
+                                        {/* {isVerificationLoading ? 'Verifying...' : 'Verify OTP'} */}
+                                        Verify OTP
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+                        {/* --- End of Section --- */}
+
+                    </div>
+                </DialogContent>
+            </Dialog>
+      
+      {/* ID Verification Dialog */}
+      <Dialog open={isIdVerificationOpen} onOpenChange={setIsIdVerificationOpen}>
+        <DialogContent className="bg-sheild-darkblue text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Upload ID Document</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm text-gray-300">ID Type</label>
+              <Select value={idType} onValueChange={setIdType}>
+                <SelectTrigger className="bg-black/30 border-gray-700 text-white">
+                  <SelectValue placeholder="Select ID Type" />
+                </SelectTrigger>
+                <SelectContent className="bg-sheild-darkblue border-gray-700">
+                  <SelectItem value="Aadhar Card">Aadhar Card</SelectItem>
+                  <SelectItem value="Passport">Passport</SelectItem>
+                  <SelectItem value="Driving License">Driving License</SelectItem>
+                  <SelectItem value="Pan Card">Pan Card</SelectItem>
+                  <SelectItem value="Voter ID">Voter ID</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-gray-300">ID Number</label>
+              <Input
+                type="text"
+                value={idNumber}
+                onChange={(e) => setIdNumber(e.target.value)}
+                className="bg-black/30 border-gray-700 text-white"
+                placeholder="Enter your ID number"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-gray-300">Upload ID Document (Max 5MB)</label>
+              <Input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={handleIdDocumentChange}
+                className="bg-black/30 border-gray-700 text-white"
+              />
+            </div>
+            {idDocument && (
+              <div className="text-center text-green-300 text-sm">
+                File selected: {idDocument.name}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsIdVerificationOpen(false);
+                setIdType('');
+                setIdNumber('');
+                setIdDocument(null);
+              }}
+              className="border-gray-700 text-gray-300"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleIdDocumentUpload}
+              disabled={!idType || !idNumber || !idDocument || isIdVerificationLoading}
+              className="bg-sheild-purple hover:bg-sheild-purple/80"
+            >
+              {isIdVerificationLoading ? 'Uploading...' : 'Upload Document'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Verification Status Dialog */}
+      <Dialog open={isVerificationStatusOpen} onOpenChange={setIsVerificationStatusOpen}>
+        <DialogContent className="bg-sheild-darkblue text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Verification Status</DialogTitle>
+          </DialogHeader>
+          {verificationStatus && (
+            <div className="space-y-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="text-white">2 Factor Verification</div>
+                {verificationStatus.isPhoneVerified ? (
+                  <div className="bg-green-500/20 text-green-300 text-sm px-3 py-1 rounded-full flex items-center">
+                    <Check size={12} className="mr-1" /> Verified
+                  </div>
+                ) : (
+                  <div className="bg-red-500/20 text-red-300 text-sm px-3 py-1 rounded-full flex items-center">
+                    <X size={12} className="mr-1" /> Not Verified
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-white">Manual Identity Verification</div>
+                {verificationStatus.isIdVerified ? (
+                  <div className="bg-green-500/20 text-green-300 text-sm px-3 py-1 rounded-full flex items-center">
+                    <Check size={12} className="mr-1" /> Verified
+                  </div>
+                ) : verificationStatus.verificationStatus === 'in_review' ? (
+                  <div className="bg-yellow-500/20 text-yellow-300 text-sm px-3 py-1 rounded-full flex items-center">
+                    <span className="mr-1">⌛</span> In Review
+                  </div>
+                ) : (
+                  <div className="bg-red-500/20 text-red-300 text-sm px-3 py-1 rounded-full flex items-center">
+                    <X size={16} className="mr-1" /> Not Verified
+                  </div>
+                )}
+              </div>
+              {verificationStatus.idType && (
+                <div className="text-gray-300 text-sm">
+                  ID Submitted: {verificationStatus.idType}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              onClick={() => setIsVerificationStatusOpen(false)}
+              className="bg-sheild-purple hover:bg-sheild-purple/80"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Reset Password Dialog */}
       <Dialog open={isResetPasswordOpen} onOpenChange={setIsResetPasswordOpen}>
