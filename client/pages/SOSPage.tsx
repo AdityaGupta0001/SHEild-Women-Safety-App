@@ -19,13 +19,29 @@ const SOSPage = () => {
     toast.info('SOS signal activated');
     
     try {
-      // Call to your backend API
-      const response = await fetch('http://localhost:8080/api/sos/trigger', {
+      // Get user's geolocation
+      if (!navigator.geolocation) {
+        throw new Error('Geolocation is not supported by your browser');
+      }
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      
+      // Call to your backend API with the location data
+      const response = await fetch('http://localhost:8080/api/sos/alert', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
+        body: JSON.stringify({ latitude, longitude }),
         credentials: 'include',
       });
       
@@ -36,6 +52,14 @@ const SOSPage = () => {
       }
       
       toast.success('SOS signal sent successfully. Help is on the way.');
+      
+      // Show additional details about the response
+      if (data.details) {
+        const { nearbyAuthoritiesFound } = data.details;
+        if (nearbyAuthoritiesFound > 0) {
+          toast.info(`Found ${nearbyAuthoritiesFound} nearby authorities that have been notified.`);
+        }
+      }
     } catch (error) {
       console.error('SOS error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to send SOS');
@@ -49,8 +73,8 @@ const SOSPage = () => {
     
     try {
       // Call to your backend API
-      await fetch('http://localhost:8080/api/sos/call', {
-        method: 'POST',
+      const response = await fetch('http://localhost:8080/api/sos/call-helpline', {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -58,8 +82,19 @@ const SOSPage = () => {
         credentials: 'include',
       });
       
-      // In a real app, this would trigger a phone call
-      toast.success('Connecting to emergency services...');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get helpline information');
+      }
+      
+      // Initiate phone call using the tel: URI scheme
+      if (data.helplineNumber) {
+        window.location.href = `tel:${data.helplineNumber}`;
+        toast.success(`Connecting to emergency helpline: ${data.helplineNumber}`);
+      } else {
+        toast.error('No helpline number available');
+      }
     } catch (error) {
       console.error('Emergency call error:', error);
       toast.error('Failed to connect emergency call');
