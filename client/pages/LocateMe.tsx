@@ -270,7 +270,7 @@ const LocateMeMinimalMap = () => {
                   setErrorMsg(`Failed to get directions: ${status}. Please try a different destination.`);
                   // toast.error(`Failed to get directions: ${status}`);
                    // Clear previous route if calculation failed
-                  directionsRenderer.setDirections({ routes: [] });
+                  directionsRenderer.setDirections(null);
                   setDirectionsResponse(null);
                   // Optionally, restore the original marker if needed
                   // if (markerRef.current && mapRef.current) {
@@ -488,7 +488,7 @@ const LocateMeMinimalMap = () => {
                  // Add more specific messages based on status
                  setErrorMsg(errorText);
                  toast.error(`Failed to get directions: ${status}`);
-                directionsRenderer.setDirections({ routes: [] }); // Clear map route
+                directionsRenderer.setDirections(null); // Clear map route
             }
         }
     );
