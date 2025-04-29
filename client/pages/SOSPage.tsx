@@ -35,7 +35,7 @@ const SOSPage = () => {
       const { latitude, longitude } = position.coords;
       
       // Call to your backend API with the location data
-      const response = await fetch('http://localhost:8080/api/sos/alert', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/sos/alert', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ const SOSPage = () => {
     
     try {
       // Call to your backend API
-      const response = await fetch('http://localhost:8080/api/sos/call-helpline', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/sos/call-helpline', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

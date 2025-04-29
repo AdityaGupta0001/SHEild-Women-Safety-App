@@ -359,7 +359,7 @@ const LocateMeMinimalMap = () => {
     // --- 2. Fetch Safe Spots Internally ---
     try {
         console.log(`Fetching safe spots near ${currentLocation.lat},${currentLocation.lng} with radius ${radius[0]}km`);
-        const response = await fetch('http://localhost:8080/api/safespots/near-me', {
+        const response = await fetch('https://sheild-backend.onrender.com/api/safespots/near-me', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

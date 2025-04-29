@@ -96,7 +96,7 @@ const Profile = () => {
   const fetchUserProfile = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/user/get-user', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/user/get-user', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -146,7 +146,7 @@ const Profile = () => {
   const handleLogout = async () => {
     try {
       // Call to your backend API
-      await fetch('http://localhost:8080/api/auth/logout', {
+      await fetch('https://sheild-backend.onrender.com/api/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -171,7 +171,7 @@ const Profile = () => {
     
     try {
       // Call to your backend API
-      const response = await fetch('http://localhost:8080/api/user/update-user', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/user/update-user', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -214,7 +214,7 @@ const Profile = () => {
     setIsResetPasswordLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/auth/reset-password', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/auth/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -267,7 +267,7 @@ const Profile = () => {
         }
       ];
       
-      const response = await fetch('http://localhost:8080/api/user/update-user', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/user/update-user', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -313,7 +313,7 @@ const Profile = () => {
     
     try {
       // Call to your backend API to delete user
-      const response = await fetch('http://localhost:8080/api/user/delete-user', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/user/delete-user', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -327,7 +327,7 @@ const Profile = () => {
       }
       
       // Now logout the user
-      await fetch('http://localhost:8080/api/auth/logout', {
+      await fetch('https://sheild-backend.onrender.com/api/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -375,7 +375,7 @@ const Profile = () => {
       formData.append('profilePicture', profilePicture);
       
       // Using PATCH method as specified
-      const response = await fetch('http://localhost:8080/api/user/update-profile-picture', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/user/update-profile-picture', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -414,7 +414,7 @@ const Profile = () => {
     setIsPhoneVerificationLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/user/verify/phone', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/user/verify/phone', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -452,7 +452,7 @@ const Profile = () => {
     setIsPhoneVerificationLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/user/verify/otp', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/user/verify/otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -529,7 +529,7 @@ const Profile = () => {
       formData.append('idNumber', idNumber);
       
       // Using POST method as specified
-      const response = await fetch('http://localhost:8080/api/user/verify/id', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/user/verify/id', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -564,7 +564,7 @@ const Profile = () => {
     setIsVerificationStatusLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/user/verify/status', {
+      const response = await fetch('https://sheild-backend.onrender.com/api/user/verify/status', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

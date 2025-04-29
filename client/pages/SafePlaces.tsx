@@ -69,7 +69,7 @@ const SafePlaces = () => {
 
     setIsLoading(true);
     
-    fetch('http://localhost:8080/api/safespots/near-me/filter', {
+    fetch('https://sheild-backend.onrender.com/api/safespots/near-me/filter', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ const SafePlaces = () => {
 
     setIsLoading(true);
     
-    fetch('http://localhost:8080/api/safespots/near-me', {
+    fetch('https://sheild-backend.onrender.com/api/safespots/near-me', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -139,7 +139,7 @@ const SafePlaces = () => {
   };
 
   const handleUpvote = (id: string) => {
-    fetch(`http://localhost:8080/api/safespots/spots/${id}/upvote`, {
+    fetch(`https://sheild-backend.onrender.com/api/safespots/spots/${id}/upvote`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -161,7 +161,7 @@ const SafePlaces = () => {
   };
 
   const handleDownvote = (id: string) => {
-    fetch(`http://localhost:8080/api/safespots/spots/${id}/downvote`, {
+    fetch(`https://sheild-backend.onrender.com/api/safespots/spots/${id}/downvote`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -183,7 +183,7 @@ const SafePlaces = () => {
   };
 
   const handleGetDirections = (id: string) => {
-    fetch(`http://localhost:8080/api/safespots/spots/${id}/directions`, {
+    fetch(`https://sheild-backend.onrender.com/api/safespots/spots/${id}/directions`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

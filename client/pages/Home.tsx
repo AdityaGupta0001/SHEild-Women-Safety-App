@@ -29,7 +29,7 @@ const Home = () => {
   const handleLogout = async () => {
     try {
       // Call to your backend API
-      await fetch('http://localhost:8080/api/auth/logout', {
+      await fetch('https://sheild-backend.onrender.com/api/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
