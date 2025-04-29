@@ -61,12 +61,11 @@ const Login = () => {
         
         {/* Back button - Updated to use navigate instead of Link */}
         <div className="absolute top-4 left-4 z-10">
-          <button 
-            onClick={() => navigate('/')} 
-            className="text-white p-1 rounded-full hover:bg-white/10"
-          >
-            <ArrowLeft size={isMobile ? 18 : 20} />
+          <Link to="/">
+          <button className="text-white p-2 rounded-full hover:bg-white/10">
+              <ArrowLeft size={20} />
           </button>
+          </Link>
         </div>
 
         <div className="relative z-10 p-5 md:p-8">

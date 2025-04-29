@@ -592,7 +592,7 @@ const LocateMeMinimalMap = () => {
       <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
       
       {/* Input and Button Container - Apply styles from Code 2 */}
-      <div className="flex justify-center items-center w-full mb-4 gap-2">
+      <div className="flex flex-col sm:flex-row w-full mb-4 gap-2">
           <input
               ref={autoCompleteRef}
               type="text"

@@ -20,6 +20,7 @@ interface UserProfile {
     name: string;
     phone: string;
     relationship: string;
+    email?: string;
   }[];
   isPhoneVerified: boolean;
   isIdVerified: boolean;
@@ -56,6 +57,7 @@ const Profile = () => {
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [contactRelation, setContactRelation] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
   const [isAddContactLoading, setIsAddContactLoading] = useState(false);
   
   // Delete account states
@@ -246,7 +248,7 @@ const Profile = () => {
 
   // Add Emergency Contact Handler
   const handleAddEmergencyContact = async () => {
-    if (!contactName || !contactPhone || !contactRelation) {
+    if (!contactName || !contactPhone || !contactRelation || !contactEmail) {
       toast.error('All fields are required');
       return;
     }
@@ -260,7 +262,8 @@ const Profile = () => {
         {
           name: contactName,
           phone: contactPhone,
-          relationship: contactRelation
+          relationship: contactRelation,
+          email: contactEmail
         }
       ];
       
@@ -290,6 +293,7 @@ const Profile = () => {
       setContactName('');
       setContactPhone('');
       setContactRelation('');
+      setContactEmail('');
     } catch (error) {
       console.error('Add emergency contact error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to add emergency contact');
@@ -738,6 +742,7 @@ const Profile = () => {
                   <div>
                     <div className="text-white font-medium">{contact.name}</div>
                     <div className="text-gray-300 text-sm">{contact.phone}</div>
+                    {contact.email && (<div className="text-gray-300 text-sm">{contact.email}</div>)}
                   </div>
                   <div className="text-gray-400 text-sm">
                     {contact.relationship}
@@ -1200,6 +1205,16 @@ const Profile = () => {
                 onChange={(e) => setContactRelation(e.target.value)}
                 className="bg-black/30 border-gray-700 text-white"
                 placeholder="e.g. Family, Friend, Colleague"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-gray-300">Email</label>
+              <Input
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                className="bg-black/30 border-gray-700 text-white"
+                placeholder="Enter email address"
               />
             </div>
           </div>
