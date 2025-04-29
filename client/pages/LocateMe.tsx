@@ -9,7 +9,7 @@ import Logo from '@/components/Logo';
 
 // --- IMPORTANT: Replace with your actual Google Maps API Key ---
 // --- Make sure Maps JavaScript API, Places API, and Directions API are enabled ---
-const Maps_API_KEY = 'AIzaSyBuwXdNBys4SSg5MStuKc4DW63PtjUHYn4'; // <--- REPLACE THIS
+const Maps_API_KEY = import.meta.env.VITE_MAPS_API_KEY; // <--- REPLACE THIS
 
 // Function to load the Google Maps script (Now includes 'places' library)
 const loadGoogleMapsScript = (callback: () => void) => {
