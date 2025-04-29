@@ -68,7 +68,7 @@ const Home = () => {
     },
     {
       icon: <Bell className="h-6 w-6 md:h-8 md:w-8 text-sheild-purple" />,
-      title: "Safety Reports",
+      title: "Safe Places",
       description: "Check and report safety incidents in your area",
       path: "/safe-places"
     }
