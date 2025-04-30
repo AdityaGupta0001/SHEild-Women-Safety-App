@@ -88,6 +88,8 @@ npm run dev
 - Progressive Web App (PWA) support
 - Multilingual support
 
+## 🔗 Link to backend repository: [SHEild Backend](https://github.com/AdityaGupta0001/SHEild-Backend)
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please open issues or pull requests with enhancements, fixes, or ideas.
