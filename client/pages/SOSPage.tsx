@@ -7,6 +7,8 @@ import { ArrowLeft, Phone, Map, Bell, User, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const SOSPage = () => {
   const [isSending, setIsSending] = useState(false);
   const navigate = useNavigate();
@@ -35,7 +37,7 @@ const SOSPage = () => {
       const { latitude, longitude } = position.coords;
       
       // Call to your backend API with the location data
-      const response = await fetch('https://sheild-backend.onrender.com/api/sos/alert', {
+      const response = await fetch(`${BACKEND_URL}/api/sos/alert`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +75,7 @@ const SOSPage = () => {
     
     try {
       // Call to your backend API
-      const response = await fetch('https://sheild-backend.onrender.com/api/sos/call-helpline', {
+      const response = await fetch(`${BACKEND_URL}/api/sos/call-helpline`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

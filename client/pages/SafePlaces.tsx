@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 interface SafeSpot {
   _id: string;
   name: string;
@@ -69,7 +71,7 @@ const SafePlaces = () => {
 
     setIsLoading(true);
     
-    fetch('https://sheild-backend.onrender.com/api/safespots/near-me/filter', {
+    fetch(`${BACKEND_URL}/api/safespots/near-me/filter`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,7 +110,7 @@ const SafePlaces = () => {
 
     setIsLoading(true);
     
-    fetch('https://sheild-backend.onrender.com/api/safespots/near-me', {
+    fetch(`${BACKEND_URL}/api/safespots/near-me`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

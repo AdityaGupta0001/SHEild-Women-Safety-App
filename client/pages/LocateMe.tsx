@@ -10,6 +10,7 @@ import Logo from '@/components/Logo';
 // --- IMPORTANT: Replace with your actual Google Maps API Key ---
 // --- Make sure Maps JavaScript API, Places API, and Directions API are enabled ---
 const Maps_API_KEY = import.meta.env.VITE_MAPS_API_KEY; // <--- REPLACE THIS
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 // Function to load the Google Maps script (Now includes 'places' library)
 const loadGoogleMapsScript = (callback: () => void) => {
@@ -359,7 +360,7 @@ const LocateMeMinimalMap = () => {
     // --- 2. Fetch Safe Spots Internally ---
     try {
         console.log(`Fetching safe spots near ${currentLocation.lat},${currentLocation.lng} with radius ${radius[0]}km`);
-        const response = await fetch('https://sheild-backend.onrender.com/api/safespots/near-me', {
+        const response = await fetch(`${BACKEND_URL}/api/safespots/near-me`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

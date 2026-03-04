@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '@/components/Logo';
@@ -7,7 +6,10 @@ import { toast } from 'sonner';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const Login = () => {
+  console.log('Backend URL:', `${BACKEND_URL}/api/auth/login`);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -27,7 +29,7 @@ const Login = () => {
     
     try {
       // Call to your backend API
-      const response = await fetch('https://sheild-backend.onrender.com/api/auth/login', {
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

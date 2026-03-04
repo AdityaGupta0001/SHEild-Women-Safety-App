@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 // --- IMPORTANT: Replace with your actual Google Maps API Key ---
 // --- Make sure Maps JavaScript API and Places API are enabled ---
 const Maps_API_KEY = import.meta.env.VITE_MAPS_API_KEY; // <--- REPLACE THIS
-
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL; // <--- REPLACE THIS
 // --- Function to load the Google Maps script (includes 'places' library) ---
 const loadGoogleMapsScript = (callback: () => void) => {
   const existingScript = document.getElementById('googleMapsScript');
@@ -358,7 +358,7 @@ const CollabPage = () => {
     // ... (keep existing implementation) ...
      try {
       setLoading(true);
-      const response = await fetch('https://sheild-backend.onrender.com/api/collab/requests', {
+      const response = await fetch(`${BACKEND_URL}/api/collab/requests`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -394,7 +394,7 @@ const CollabPage = () => {
       console.log(`Attempting to cancel request with ID: ${requestId}`);
 
       // API Call - Assuming DELETE /api/collab/delete-request/{requestId}
-      const response = await fetch(`https://sheild-backend.onrender.com/api/collab/delete-request`, {
+      const response = await fetch(`https://sheild-backend.on.com/api/collab/delete-request`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -435,7 +435,7 @@ const CollabPage = () => {
          throw new Error('Authentication token not found.'); // Should be handled by route protection ideally
      }
 
-     const response = await fetch('https://sheild-backend.onrender.com/api/collab/match', { // Correct endpoint
+     const response = await fetch(`${BACKEND_URL}/api/collab/match`, { // Correct endpoint
        headers: {
          'Authorization': `Bearer ${token}`,
        }
@@ -486,7 +486,7 @@ const CollabPage = () => {
     // ... (keep existing implementation) ...
     try {
       setLoading(true);
-      const response = await fetch('https://sheild-backend.onrender.com/api/collab/groups', {
+      const response = await fetch(`${BACKEND_URL}/api/collab/groups`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -527,7 +527,7 @@ const CollabPage = () => {
     console.log("Sending connection request:", requestBody);
 
     try {
-      const response = await fetch('https://sheild-backend.onrender.com/api/collab/journey/request', {
+      const response = await fetch(`${BACKEND_URL}/api/collab/journey/request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -570,7 +570,7 @@ const CollabPage = () => {
         return;
       }
 
-      const response = await fetch('https://sheild-backend.onrender.com/api/collab/journey/requests/outgoing', { // <-- Correct endpoint [2]
+      const response = await fetch(`${BACKEND_URL}/api/collab/journey/requests/outgoing`, { // <-- Correct endpoint [2]
         method: 'GET', // Method is GET
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -642,7 +642,7 @@ const CollabPage = () => {
         return;
       }
 
-      const response = await fetch('https://sheild-backend.onrender.com/api/collab/journey/active', { // <-- Active endpoint
+      const response = await fetch(`${BACKEND_URL}/api/collab/journey/active`, { // <-- Active endpoint
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -712,7 +712,7 @@ const CollabPage = () => {
         return;
       }
 
-      const response = await fetch('https://sheild-backend.onrender.com/api/collab/journey/history', { // <-- History endpoint
+      const response = await fetch(`${BACKEND_URL}/api/collab/journey/history`, { // <-- History endpoint
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -835,7 +835,7 @@ const CollabPage = () => {
         return;
       }
 
-      const response = await fetch('https://sheild-backend.onrender.com/api/collab/journey/requests/incoming', { // <-- Incoming endpoint
+      const response = await fetch(`${BACKEND_URL}/api/collab/journey/requests/incoming`, { // <-- Incoming endpoint
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -943,7 +943,7 @@ const CollabPage = () => {
       console.log("Submitting travel request:", requestData);
 
       // --- API Call ---
-      const response = await fetch('https://sheild-backend.onrender.com/api/collab/request', {
+      const response = await fetch(`${BACKEND_URL}/api/collab/request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

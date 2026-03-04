@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const Signup = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -28,7 +30,7 @@ const Signup = () => {
     
     try {
       // Call to your backend API
-      const response = await fetch('https://sheild-backend.onrender.com/api/auth/signup', {
+      const response = await fetch(`${BACKEND_URL}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -7,6 +7,8 @@ import { Shield, MapPin, Users, Bell, Phone, Menu } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 interface Feature {
   icon: React.ReactNode;
   title: string;
@@ -29,7 +31,7 @@ const Home = () => {
   const handleLogout = async () => {
     try {
       // Call to your backend API
-      await fetch('https://sheild-backend.onrender.com/api/auth/logout', {
+      await fetch(`${BACKEND_URL}/api/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
