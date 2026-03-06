@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '@/components/Logo';
@@ -18,10 +17,10 @@ const SOSPage = () => {
     if (isSending) return;
     
     setIsSending(true);
-    toast.info('SOS signal activated');
+    toast.info('SOS signal activated! Fetching location...');
     
     try {
-      // Get user's geolocation
+      // 1. Get user's geolocation
       if (!navigator.geolocation) {
         throw new Error('Geolocation is not supported by your browser');
       }
@@ -29,15 +28,15 @@ const SOSPage = () => {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 5000,
+          timeout: 10000, // Increased slightly to ensure accurate GPS lock
           maximumAge: 0
         });
       });
 
       const { latitude, longitude } = position.coords;
       
-      // Call to your backend API with the location data
-      const response = await fetch(`${BACKEND_URL}/api/sos/alert`, {
+      // 2. Alert Authorities (Your existing logic)
+      const alertResponse = await fetch(`${BACKEND_URL}/api/sos/alert`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,21 +46,47 @@ const SOSPage = () => {
         credentials: 'include',
       });
       
-      const data = await response.json();
+      const alertData = await alertResponse.json();
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send SOS');
+      if (!alertResponse.ok) {
+        throw new Error(alertData.error || 'Failed to alert authorities');
+      }
+
+      // 3. Dispatch SMS to Emergency Contacts via SMSGate
+      // Create an urgent, highly visible message format
+      const googleMapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+      const urgentMessage = `🚨 URGENT SOS ALERT 🚨\n\nI need immediate help! This is an automated emergency message from my SHEild app.\n\n📍 My current location:\n${googleMapsLink}\n\nPlease contact me or send help immediately! 🚓🚑`;
+
+      const smsResponse = await fetch(`${BACKEND_URL}/api/sos/notify-contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ 
+          message: urgentMessage,
+          latitude,
+          longitude
+        }),
+      });
+
+      const smsData = await smsResponse.json();
+
+      if (!smsResponse.ok) {
+        console.error("SMS Dispatch Warning:", smsData.error);
+        toast.warning('Authorities alerted, but some SMS messages failed to send.');
+      } else {
+        toast.success(`SOS sent successfully! Help is on the way. Notified ${smsData.contactsNotified || 'your'} emergency contacts.`);
       }
       
-      toast.success('SOS signal sent successfully. Help is on the way.');
-      
-      // Show additional details about the response
-      if (data.details) {
-        const { nearbyAuthoritiesFound } = data.details;
+      // 4. Show additional details about the response
+      if (alertData.details) {
+        const { nearbyAuthoritiesFound } = alertData.details;
         if (nearbyAuthoritiesFound > 0) {
           toast.info(`Found ${nearbyAuthoritiesFound} nearby authorities that have been notified.`);
         }
       }
+
     } catch (error) {
       console.error('SOS error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to send SOS');
@@ -74,7 +99,6 @@ const SOSPage = () => {
     toast.info('Initiating emergency call...');
     
     try {
-      // Call to your backend API
       const response = await fetch(`${BACKEND_URL}/api/sos/call-helpline`, {
         method: 'GET',
         headers: {
@@ -90,7 +114,6 @@ const SOSPage = () => {
         throw new Error(data.error || 'Failed to get helpline information');
       }
       
-      // Initiate phone call using the tel: URI scheme
       if (data.helplineNumber) {
         window.location.href = `tel:${data.helplineNumber}`;
         toast.success(`Connecting to emergency helpline: ${data.helplineNumber}`);
