@@ -5,29 +5,17 @@ import * as faceapi from 'face-api.js';
 import Logo from '@/components/Logo';
 import SheildButton from '@/components/SheildButton';
 import { toast } from 'sonner';
-import { ArrowLeft, Eye, EyeOff, X, Loader2, CheckCircle2, AlertTriangle, Timer } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, X, Loader2, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-// Total: 35 Gestures
 const REGULAR_GESTURES = [
-  'Smile', 'Look Surprised', 'Look Angry', 'Look Sad', 'Look Fearful', 'Look Disgusted', 'Look Neutral',
+  'Smile', 'Look Surprised', 'Look Angry', 'Look Sad', 'Look Neutral',
   'Open Mouth', 'Close Eyes', 
   'Turn Head Left', 'Turn Head Right', 
-  'Tilt Head Left', 'Tilt Head Right',
-  'Move Face to Left Side', 'Move Face to Right Side',
-  'Move Face Upwards', 'Move Face Downwards',
-  'Wink Left Eye', 'Wink Right Eye',
-  'Pucker Lips', 'Raise Eyebrows',
-  'Smile & Close Eyes', 'Smile & Tilt Head Left', 'Smile & Tilt Head Right',
-  'Smile & Turn Head Left', 'Smile & Turn Head Right',
-  'Open Mouth & Look Surprised', 'Open Mouth & Tilt Head Left', 'Open Mouth & Tilt Head Right',
-  'Look Angry & Turn Head Left', 'Look Angry & Turn Head Right',
-  'Close Eyes & Turn Head Left', 'Close Eyes & Turn Head Right'
+  'Tilt Head Left', 'Tilt Head Right'
 ];
-
-const MANDATORY_GESTURES = ['Move Face Closer', 'Move Face Away'];
 
 const Signup = () => {
   const [name, setName] = useState('');
@@ -46,7 +34,6 @@ const Signup = () => {
   const [uiLevel, setUiLevel] = useState<'gender' | 'gestures'>('gender');
   const [uiGestureSequence, setUiGestureSequence] = useState<string[]>([]);
   const [uiCurrentIndex, setUiCurrentIndex] = useState(0);
-  const [uiTimeLeft, setUiTimeLeft] = useState(5);
 
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -61,7 +48,6 @@ const Signup = () => {
     maleFrames: 0,
     cooldown: 0,
     baseDescriptor: null as Float32Array | null,
-    gestureStartTime: 0
   });
 
   useEffect(() => {
@@ -108,30 +94,18 @@ const Signup = () => {
       return;
     }
     
-    // Generate 5 to 8 gestures
-    const numGestures = Math.floor(Math.random() * 4) + 5; 
-    const sequence: string[] = Array(numGestures).fill('');
-    
-    // Assign mandatory spatial gestures to random distinct slots
-    let m1 = Math.floor(Math.random() * numGestures);
-    let m2;
-    do { m2 = Math.floor(Math.random() * numGestures); } while (m1 === m2);
-    
-    sequence[m1] = MANDATORY_GESTURES[0];
-    sequence[m2] = MANDATORY_GESTURES[1];
+    const numGestures = 4; 
+    const sequence: string[] = [];
+    let lastGesture = '';
 
-    // Fill the remaining slots preventing consecutive duplicates
     for (let i = 0; i < numGestures; i++) {
-      if (sequence[i] !== '') continue;
-
       let nextGesture;
       do {
         nextGesture = REGULAR_GESTURES[Math.floor(Math.random() * REGULAR_GESTURES.length)];
-      } while (
-        (i > 0 && sequence[i - 1] === nextGesture) || 
-        (i < numGestures - 1 && sequence[i + 1] === nextGesture)
-      );
-      sequence[i] = nextGesture;
+      } while (nextGesture === lastGesture);
+      
+      sequence.push(nextGesture);
+      lastGesture = nextGesture;
     }
 
     sessionState.current = {
@@ -142,13 +116,11 @@ const Signup = () => {
       maleFrames: 0,
       cooldown: 0,
       baseDescriptor: null,
-      gestureStartTime: 0
     };
 
     setUiGestureSequence(sequence);
     setUiCurrentIndex(0);
     setUiLevel('gender');
-    setUiTimeLeft(5);
     setShowModal(true);
     setVerificationStatus('idle');
     
@@ -157,7 +129,25 @@ const Signup = () => {
     }
   };
 
-  const executeSignupCall = async () => {
+  const handleSkipGesture = useCallback(() => {
+    const state = sessionState.current;
+    if (state.level !== 'gestures' || state.currentIndex >= state.sequence.length) return;
+
+    let newGesture;
+    const currentGesture = state.sequence[state.currentIndex];
+    
+    do {
+      newGesture = REGULAR_GESTURES[Math.floor(Math.random() * REGULAR_GESTURES.length)];
+    } while (newGesture === currentGesture);
+
+    state.sequence[state.currentIndex] = newGesture;
+    setUiGestureSequence([...state.sequence]);
+    
+    state.cooldown = 2; 
+    setStatusMessage(`Swapped! Try: ${newGesture}`);
+  }, []);
+
+  const executeSignupCall = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${BACKEND_URL}/api/auth/signup`, {
@@ -180,7 +170,7 @@ const Signup = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [name, email, password, navigate]);
 
   const startScanning = useCallback(() => {
     if (!webcamRef.current || !webcamRef.current.video || !modelsLoaded) return;
@@ -191,7 +181,6 @@ const Signup = () => {
       
       if (state.cooldown > 0) {
         state.cooldown -= 1;
-        state.gestureStartTime = Date.now(); 
         return;
       }
 
@@ -228,7 +217,6 @@ const Signup = () => {
             setUiLevel('gestures');
             setStatusMessage('Identity locked. Prepare for liveness check...');
             state.cooldown = 4;
-            state.gestureStartTime = Date.now() + 2000;
           }
         }
         return;
@@ -237,24 +225,13 @@ const Signup = () => {
       // --- LEVEL 2: GESTURES & CONTINUOUS TRACKING ---
       if (state.level === 'gestures') {
         
-        // 1. Identity & Gender Lock
-        if (detection.gender === 'male' && detection.genderProbability > 0.8) {
-          return handleFailure('Security Alert: Male face detected during sequence.');
-        }
-
+        // 1. Identity Lock
         if (state.baseDescriptor) {
           const distance = faceapi.euclideanDistance(state.baseDescriptor, detection.descriptor);
           if (distance > 0.6) return handleFailure('Security Alert: Face swap detected. Verification aborted.');
         }
 
-        // 2. Strict Timer Enforcement
-        const elapsed = Date.now() - state.gestureStartTime;
-        const remainingTime = Math.ceil((5000 - elapsed) / 1000);
-        setUiTimeLeft(Math.max(0, remainingTime));
-
-        if (elapsed > 5000) return handleFailure('Verification Timeout: You must perform the gesture within 5 seconds.');
-
-        // 3. Pre-calculate all landmarks and ratios for fast validation
+        // 2. Pre-calculate landmarks and ratios
         const currentGesture = state.sequence[state.currentIndex];
         setStatusMessage(`Perform action: ${currentGesture}`);
 
@@ -265,31 +242,13 @@ const Signup = () => {
         const leftEye = landmarks.getLeftEye();
         const rightEye = landmarks.getRightEye();
         const mouth = landmarks.getMouth();
-        const leftBrow = landmarks.getLeftEyeBrow();
-        
-        // Bounding Box Ratios (Adapts to how close user is to camera)
-        const boxCenter = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-        const videoCenter = { x: video.videoWidth / 2, y: video.videoHeight / 2 };
         
         const mouthOpenDist = Math.abs(mouth[14].y - mouth[18].y);
-        const mouthWidth = Math.abs(mouth[0].x - mouth[6].x);
         const leftEyeHeight = Math.abs(leftEye[1].y - leftEye[5].y);
         const rightEyeHeight = Math.abs(rightEye[1].y - rightEye[5].y);
-        const browRaiseDist = Math.abs(leftEye[3].y - leftBrow[3].y);
-        
-        // Boolean states to build combos
-        const isSmiling = expressions.happy > 0.8;
-        const isSurprised = expressions.surprised > 0.8;
-        const isAngry = expressions.angry > 0.8;
-        const isSad = expressions.sad > 0.8;
-        const isFearful = expressions.fearful > 0.8;
-        const isDisgusted = expressions.disgusted > 0.8;
-        const isNeutral = expressions.neutral > 0.8;
         
         const isMouthOpen = mouthOpenDist / box.height > 0.08;
-        const isLeftEyeClosed = leftEyeHeight / box.height < 0.025;
-        const isRightEyeClosed = rightEyeHeight / box.height < 0.025;
-        const areEyesClosed = isLeftEyeClosed && isRightEyeClosed;
+        const areEyesClosed = (leftEyeHeight / box.height < 0.025) && (rightEyeHeight / box.height < 0.025);
         
         const isHeadTurnedLeft = (nose.x - leftEye[0].x) < ((rightEye[3].x - leftEye[0].x) * 0.35);
         const isHeadTurnedRight = (rightEye[3].x - nose.x) < ((rightEye[3].x - leftEye[0].x) * 0.35);
@@ -298,54 +257,24 @@ const Signup = () => {
         const isTiltedLeft = headAngle < -15;
         const isTiltedRight = headAngle > 15;
 
-        // Massive validation router
+        // Validation router
         switch (currentGesture) {
-          // Mandatory Spatial 
-          case 'Move Face Closer': gesturePassed = box.width > (video.videoWidth * 0.6); break;
-          case 'Move Face Away': gesturePassed = box.width < (video.videoWidth * 0.35) && box.width > 40; break;
-          
-          // Spatial X/Y Axis
-          case 'Move Face to Left Side': gesturePassed = boxCenter.x < (videoCenter.x - 60); break;
-          case 'Move Face to Right Side': gesturePassed = boxCenter.x > (videoCenter.x + 60); break;
-          case 'Move Face Upwards': gesturePassed = boxCenter.y < (videoCenter.y - 60); break;
-          case 'Move Face Downwards': gesturePassed = boxCenter.y > (videoCenter.y + 60); break;
-
-          // Pure Expressions
-          case 'Smile': gesturePassed = isSmiling; break;
-          case 'Look Surprised': gesturePassed = isSurprised; break;
-          case 'Look Angry': gesturePassed = isAngry; break;
-          case 'Look Sad': gesturePassed = isSad; break;
-          case 'Look Fearful': gesturePassed = isFearful; break;
-          case 'Look Disgusted': gesturePassed = isDisgusted; break;
-          case 'Look Neutral': gesturePassed = isNeutral; break;
-
-          // Pure Landmarks
+          case 'Smile': gesturePassed = expressions.happy > 0.8; break;
+          case 'Look Surprised': gesturePassed = expressions.surprised > 0.8; break;
+          case 'Look Angry': gesturePassed = expressions.angry > 0.8; break;
+          case 'Look Sad': gesturePassed = expressions.sad > 0.8; break;
+          case 'Look Neutral': gesturePassed = expressions.neutral > 0.8; break;
           case 'Open Mouth': gesturePassed = isMouthOpen; break;
           case 'Close Eyes': gesturePassed = areEyesClosed; break;
-          case 'Turn Head Left': gesturePassed = isHeadTurnedLeft; break;
-          case 'Turn Head Right': gesturePassed = isHeadTurnedRight; break;
-          case 'Tilt Head Left': gesturePassed = isTiltedLeft; break;
-          case 'Tilt Head Right': gesturePassed = isTiltedRight; break;
           
-          // Complex Landmarks
-          case 'Wink Left Eye': gesturePassed = isLeftEyeClosed && !isRightEyeClosed; break;
-          case 'Wink Right Eye': gesturePassed = isRightEyeClosed && !isLeftEyeClosed; break;
-          case 'Pucker Lips': gesturePassed = (mouthWidth / box.width) < 0.25 && !isMouthOpen; break;
-          case 'Raise Eyebrows': gesturePassed = (browRaiseDist / box.height) > 0.15; break;
-
-          // Combinations
-          case 'Smile & Close Eyes': gesturePassed = isSmiling && areEyesClosed; break;
-          case 'Smile & Tilt Head Left': gesturePassed = isSmiling && isTiltedLeft; break;
-          case 'Smile & Tilt Head Right': gesturePassed = isSmiling && isTiltedRight; break;
-          case 'Smile & Turn Head Left': gesturePassed = isSmiling && isHeadTurnedLeft; break;
-          case 'Smile & Turn Head Right': gesturePassed = isSmiling && isHeadTurnedRight; break;
-          case 'Open Mouth & Look Surprised': gesturePassed = isMouthOpen && isSurprised; break;
-          case 'Open Mouth & Tilt Head Left': gesturePassed = isMouthOpen && isTiltedLeft; break;
-          case 'Open Mouth & Tilt Head Right': gesturePassed = isMouthOpen && isTiltedRight; break;
-          case 'Look Angry & Turn Head Left': gesturePassed = isAngry && isHeadTurnedLeft; break;
-          case 'Look Angry & Turn Head Right': gesturePassed = isAngry && isHeadTurnedRight; break;
-          case 'Close Eyes & Turn Head Left': gesturePassed = areEyesClosed && isHeadTurnedLeft; break;
-          case 'Close Eyes & Turn Head Right': gesturePassed = areEyesClosed && isHeadTurnedRight; break;
+          // --- MIRRORED LOGIC SWAP ---
+          // Because the webcam is mirrored visually for the user, when they turn to their 
+          // physical left, the raw camera sensor sees them moving to the right. 
+          // We swap the checks here so the instruction matches the natural user movement.
+          case 'Turn Head Left': gesturePassed = isHeadTurnedRight; break;
+          case 'Turn Head Right': gesturePassed = isHeadTurnedLeft; break;
+          case 'Tilt Head Left': gesturePassed = isTiltedRight; break;
+          case 'Tilt Head Right': gesturePassed = isTiltedLeft; break;
         }
 
         if (gesturePassed) {
@@ -364,12 +293,11 @@ const Signup = () => {
           } else {
             setStatusMessage(`Great! Get ready for next...`);
             state.cooldown = 3; 
-            state.gestureStartTime = Date.now() + 1500; 
           }
         }
       }
     }, 500);
-  }, [modelsLoaded, handleFailure]);
+  }, [modelsLoaded, handleFailure, executeSignupCall]);
 
   const handleVideoLoad = () => {
     if (modelsLoaded && verificationStatus === 'idle') {
@@ -446,15 +374,6 @@ const Signup = () => {
                 {uiLevel === 'gender' ? 'Level 1: Verification' : 'Level 2: Liveness Check'}
               </h3>
               
-              {uiLevel === 'gestures' && verificationStatus === 'scanning' && (
-                <div className="flex items-center gap-2 mt-2 bg-black/50 px-3 py-1.5 rounded-full border border-white/10">
-                  <Timer size={16} className={uiTimeLeft <= 2 ? 'text-red-400 animate-pulse' : 'text-sheild-lightpurple'} />
-                  <span className={`text-sm font-bold ${uiTimeLeft <= 2 ? 'text-red-400' : 'text-white'}`}>
-                    {uiTimeLeft}s remaining
-                  </span>
-                </div>
-              )}
-              
               {uiLevel === 'gestures' && (
                 <div className="w-full bg-black/50 h-2 rounded-full mt-4 overflow-hidden border border-white/5">
                   <div 
@@ -495,7 +414,7 @@ const Signup = () => {
               )}
             </div>
 
-            <div className={`rounded-xl p-4 w-full border ${
+            <div className={`rounded-xl p-4 w-full border flex flex-col items-center text-center ${
               verificationStatus === 'failed' ? 'bg-red-500/10 border-red-500/30' : 
               verificationStatus === 'success' ? 'bg-green-500/10 border-green-500/30' : 
               'bg-black/40 border-white/10'
@@ -506,12 +425,23 @@ const Signup = () => {
                 'text-sheild-lightpurple'
               }`}>
                 {uiLevel === 'gestures' && verificationStatus === 'scanning' && uiCurrentIndex < uiGestureSequence.length
-                  ? `Action ${uiCurrentIndex + 1}/${uiGestureSequence.length}` 
+                  ? `Action ${uiCurrentIndex + 1}/4` 
                   : ''}
               </p>
+              
               <p className="text-base text-white mt-1 min-h-[48px] flex items-center justify-center">
                 {statusMessage}
               </p>
+
+              {/* Skip Button */}
+              {uiLevel === 'gestures' && verificationStatus === 'scanning' && uiCurrentIndex < uiGestureSequence.length && (
+                <button 
+                  onClick={handleSkipGesture}
+                  className="mt-3 text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1 bg-white/5 px-3 py-1.5 rounded-full border border-white/10"
+                >
+                  <RefreshCw size={14} /> Skip
+                </button>
+              )}
             </div>
             
           </div>
