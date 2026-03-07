@@ -394,7 +394,7 @@ const CollabPage = () => {
       console.log(`Attempting to cancel request with ID: ${requestId}`);
 
       // API Call - Assuming DELETE /api/collab/delete-request/{requestId}
-      const response = await fetch(`https://sheild-backend.on.com/api/collab/delete-request`, {
+      const response = await fetch(`${BACKEND_URL}/api/collab/delete-request`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -607,7 +607,7 @@ const CollabPage = () => {
         return;
       }
 
-      const response = await fetch(`https://sheild-backend.onrender.com/api/collab/journey/request/${journeyId}/respond`, {
+      const response = await fetch(`${BACKEND_URL}/api/collab/journey/request/${journeyId}/respond`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -677,7 +677,7 @@ const CollabPage = () => {
         return;
       }
 
-      const response = await fetch(`https://sheild-backend.onrender.com/api/collab/journey/${journeyId}/end`, {
+      const response = await fetch(`${BACKEND_URL}/api/collab/journey/${journeyId}/end`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -746,7 +746,7 @@ const CollabPage = () => {
         return;
       }
   
-      const response = await fetch(`https://sheild-backend.onrender.com/api/collab/journey/request/${journeyRequestId}/cancel`, {
+      const response = await fetch(`${BACKEND_URL}/api/collab/journey/request/${journeyRequestId}/cancel`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -983,7 +983,7 @@ const CollabPage = () => {
     // ... (keep existing implementation) ...
      try {
       setLoading(true);
-      const response = await fetch(`https://sheild-backend.onrender.com/api/collab/join/${groupId}`, {
+      const response = await fetch(`${BACKEND_URL}/api/collab/join/${groupId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -1010,7 +1010,7 @@ const CollabPage = () => {
     // ... (keep existing implementation) ...
      try {
       setLoading(true);
-      const response = await fetch(`https://sheild-backend.onrender.com/api/collab/leave/${groupId}`, {
+      const response = await fetch(`${BACKEND_URL}/api/collab/leave/${groupId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
